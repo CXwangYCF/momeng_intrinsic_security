@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LogiCAM JSON · MuSLR</title>
+  <style>
+    :root {
+      --paper: #f5f5f0;
+      --panel: #ffffff;
+      --ink: #14201d;
+      --muted: #68736f;
+      --line: #dce1dd;
+      --green: #146c53;
+      --green-soft: #dff2e8;
+      --red: #b33b35;
+      --red-soft: #fae5e2;
+      --amber: #9a6610;
+      --amber-soft: #fff0cd;
+      --blue: #265c91;
+      --blue-soft: #e4eef9;
+      --violet: #6b4fa3;
+      --violet-soft: #eee8f8;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--ink); background: var(--paper); font-family: var(--sans); }
+    button, select, input { font: inherit; }
+    button { color: inherit; }
+    .shell { max-width: 1800px; margin: 0 auto; padding: 24px; }
+    .topbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 22px; }
+    .eyebrow { margin: 0 0 6px; color: var(--green); font: 700 12px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(28px, 4vw, 48px); line-height: .98; letter-spacing: -.04em; }
+    .subtitle { max-width: 760px; margin: 10px 0 0; color: var(--muted); line-height: 1.5; }
+    .live { display: flex; align-items: center; gap: 8px; color: var(--muted); font: 12px var(--mono); white-space: nowrap; }
+    .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 4px var(--green-soft); }
+    .metrics { display: grid; grid-template-columns: repeat(6, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px; }
+    .metric { min-height: 118px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+    .metric-label { color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+    .metric-value { margin-top: 13px; font-size: 30px; font-weight: 750; letter-spacing: -.04em; }
+    .metric-note { margin-top: 5px; color: var(--muted); font: 11px/1.35 var(--mono); }
+    .metric.primary { color: white; background: var(--green); border-color: var(--green); }
+    .metric.primary .metric-label, .metric.primary .metric-note { color: #cce6dc; }
+    .analysis-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(360px, 1fr); gap: 12px; margin-bottom: 16px; }
+    .card { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); overflow: hidden; }
+    .card-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+    .card-title { margin: 0; font-size: 14px; }
+    .card-caption { color: var(--muted); font: 11px var(--mono); }
+    .breakdowns { display: grid; grid-template-columns: 1fr 1.4fr; gap: 0; }
+    .breakdown { padding: 14px 16px 16px; }
+    .breakdown + .breakdown { border-left: 1px solid var(--line); }
+    .breakdown h3 { margin: 0 0 12px; color: var(--muted); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+    .bar-row { display: grid; grid-template-columns: minmax(80px, 1fr) 2fr 54px; align-items: center; gap: 10px; margin: 9px 0; font-size: 12px; }
+    .bar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bar-track { height: 7px; border-radius: 10px; background: #ebeeeb; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: inherit; background: var(--green); }
+    .bar-value { font: 11px var(--mono); text-align: right; }
+    .token-chart { display: flex; align-items: flex-end; gap: 10px; height: 160px; padding: 18px 16px 12px; }
+    .token-bar { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 7px; height: 100%; }
+    .token-count { color: var(--muted); font: 11px var(--mono); }
+    .token-column { width: min(48px, 80%); min-height: 2px; border-radius: 6px 6px 2px 2px; background: var(--blue); }
+    .token-label { color: var(--muted); font: 10px var(--mono); white-space: nowrap; }
+    .workbench { display: grid; grid-template-columns: 330px minmax(0, 1fr); min-height: 720px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); overflow: hidden; }
+    .rail { border-right: 1px solid var(--line); background: #fafaf7; min-height: 0; }
+    .filters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 14px; border-bottom: 1px solid var(--line); }
+    .filters input { grid-column: 1 / -1; }
+    .filters input, .filters select { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: white; font-size: 12px; outline: none; }
+    .filters input:focus, .filters select:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+    .result-count { grid-column: 1 / -1; color: var(--muted); font: 11px var(--mono); }
+    .sample-list { max-height: 660px; overflow-y: auto; }
+    .sample-item { width: 100%; padding: 13px 14px; border: 0; border-bottom: 1px solid var(--line); background: transparent; text-align: left; cursor: pointer; }
+    .sample-item:hover { background: white; }
+    .sample-item.active { background: white; box-shadow: inset 3px 0 var(--green); }
+    .sample-top { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+    .sample-id { overflow: hidden; text-overflow: ellipsis; color: var(--ink); font: 12px var(--mono); white-space: nowrap; }
+    .sample-meta { display: flex; gap: 6px; margin-top: 7px; color: var(--muted); font-size: 11px; }
+    .badge { display: inline-flex; align-items: center; width: fit-content; padding: 3px 7px; border-radius: 999px; font: 700 10px var(--mono); text-transform: uppercase; }
+    .badge.ok { color: var(--green); background: var(--green-soft); }
+    .badge.bad { color: var(--red); background: var(--red-soft); }
+    .badge.warn { color: var(--amber); background: var(--amber-soft); }
+    .badge.neutral { color: var(--blue); background: var(--blue-soft); }
+    .detail { min-width: 0; padding: 22px; overflow: hidden; }
+    .empty { display: grid; min-height: 600px; place-items: center; color: var(--muted); }
+    .detail-head { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 18px; }
+    .detail-head h2 { margin: 5px 0 0; font: 700 20px var(--mono); }
+    .detail-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .usage { color: var(--muted); font: 11px/1.6 var(--mono); text-align: right; }
+    .problem { display: grid; grid-template-columns: minmax(240px, .8fr) minmax(320px, 1.2fr); gap: 18px; margin-bottom: 20px; }
+    .image-wrap { display: grid; min-height: 270px; place-items: center; overflow: hidden; border-radius: 12px; background: #e9ece9; }
+    .image-wrap img { display: block; width: 100%; height: 100%; max-height: 420px; object-fit: contain; }
+    .prompt h3 { margin: 0 0 6px; color: var(--muted); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+    .prompt p { margin: 0 0 15px; line-height: 1.55; }
+    .context { max-height: 180px; padding-right: 8px; overflow-y: auto; color: #3b4743; font-size: 13px; }
+    .choices { display: grid; gap: 6px; margin-top: 12px; }
+    .choice { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 12px; }
+    .choice.gold { border-color: #caa653; background: #fff8e4; }
+    .choice.pred { outline: 2px solid var(--green); outline-offset: -2px; }
+    .answer-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+    .answer-cell { padding: 10px; border-radius: 9px; background: #f2f4f2; }
+    .answer-cell span { display: block; color: var(--muted); font-size: 10px; text-transform: uppercase; }
+    .answer-cell strong { display: block; margin-top: 4px; font: 700 16px var(--mono); }
+    .error-box { margin: 0 0 18px; padding: 13px 15px; border-left: 4px solid var(--red); border-radius: 6px; color: #78302d; background: var(--red-soft); font: 12px/1.5 var(--mono); overflow-wrap: anywhere; }
+    .reasoning-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 20px 0 10px; }
+    .reasoning-head h3 { margin: 0; font-size: 15px; }
+    .reasoning-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .logic-card { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 10px; }
+    .logic-card .logic-top { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+    .logic-id { color: var(--blue); font: 700 11px var(--mono); }
+    .logic-text { margin: 0; color: #48534f; font-size: 12px; line-height: 1.45; }
+    .formula { display: block; margin-top: 8px; padding: 7px 8px; border-radius: 6px; color: #382e55; background: var(--violet-soft); font: 11px/1.4 var(--mono); overflow-wrap: anywhere; }
+    .timeline { position: relative; display: grid; gap: 10px; margin-left: 7px; padding-left: 22px; }
+    .timeline::before { content: ""; position: absolute; top: 8px; bottom: 8px; left: 5px; width: 1px; background: #bac5c0; }
+    .step { position: relative; padding: 12px; border: 1px solid var(--line); border-radius: 10px; }
+    .step::before { content: ""; position: absolute; top: 16px; left: -22px; width: 9px; height: 9px; border: 3px solid white; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 1px #a8b8b1; }
+    .step-top { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
+    .rule { padding: 3px 6px; border-radius: 5px; color: var(--green); background: var(--green-soft); font: 700 10px var(--mono); }
+    .premises { color: var(--muted); font: 10px var(--mono); }
+    .conclusion { margin-top: 8px; color: var(--ink); font: 12px/1.4 var(--mono); overflow-wrap: anywhere; }
+    .justification { margin: 6px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .original-step { margin: 0; color: #34413c; font: 12px/1.6 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+    .candidate-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    .candidate { padding: 11px; border: 1px solid var(--line); border-radius: 10px; }
+    .candidate.entailed, .candidate.true { border-color: #89b8a6; background: #f1faf5; }
+    .candidate.contradicted, .candidate.false { border-color: #e1aaa6; background: #fff7f6; }
+    .candidate-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .candidate-label strong { font: 700 14px var(--mono); }
+    .candidate-statement { margin-top: 9px; font: 11px/1.45 var(--mono); overflow-wrap: anywhere; }
+    .evidence { margin-top: 7px; color: var(--muted); font: 10px var(--mono); }
+    .final-box { margin-top: 12px; padding: 15px 16px; border-radius: 10px; color: white; background: var(--green); }
+    .final-box strong { font: 700 20px var(--mono); }
+    .final-box p { margin: 6px 0 0; color: #d8eee5; font-size: 13px; line-height: 1.5; }
+    .loader { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(245,245,240,.92); color: var(--green); font: 700 13px var(--mono); }
+    .loader.hidden { display: none; }
+    @media (max-width: 1180px) {
+      .metrics { grid-template-columns: repeat(3, 1fr); }
+      .analysis-grid { grid-template-columns: 1fr; }
+      .workbench { grid-template-columns: 280px minmax(0, 1fr); }
+      .candidate-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 800px) {
+      .shell { padding: 14px; }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+      .breakdowns, .workbench, .problem { grid-template-columns: 1fr; }
+      .breakdown + .breakdown { border-left: 0; border-top: 1px solid var(--line); }
+      .rail { border-right: 0; border-bottom: 1px solid var(--line); }
+      .sample-list { max-height: 300px; }
+      .reasoning-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="loader" id="loader">读取 LogiCAM-JSON 结果…</div>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Intrinsic Security · Reasoning Workbench</p>
+        <h1>LogiCAM / JSON</h1>
+        <p class="subtitle">把视觉事实、形式化规则、推导链与候选判定放在同一张诊断台上。以 final_answer 判分，一致性差异仅作诊断。</p>
+      </div>
+      <div class="live"><i class="live-dot"></i><span id="updated">加载中</span></div>
+    </header>
+
+    <section class="metrics" id="metrics"></section>
+
+    <section class="analysis-grid">
+      <article class="card">
+        <div class="card-head"><h2 class="card-title">分组端到端准确率</h2><span class="card-caption">错误与结构失败均计入分母</span></div>
+        <div class="breakdowns"><div class="breakdown"><h3>形式逻辑</h3><div id="symbols"></div></div><div class="breakdown"><h3>领域</h3><div id="domains"></div></div></div>
+      </article>
+      <article class="card">
+        <div class="card-head"><h2 class="card-title">输出 token 分布</h2><span class="card-caption" id="token-note"></span></div>
+        <div class="token-chart" id="token-chart"></div>
+      </article>
+    </section>
+
+    <section class="workbench">
+      <aside class="rail">
+        <div class="filters">
+          <input id="search" placeholder="搜索 ID / 领域 / 问题">
+          <select id="status"><option value="all">全部状态</option><option value="diagnostic">优先诊断</option><option value="completed">JSON 已解析</option><option value="warnings">一致性提示</option><option value="invalid_json">JSON 失败</option></select>
+          <select id="correct"><option value="all">全部结果</option><option value="correct">回答正确</option><option value="wrong">回答错误</option></select>
+          <select id="symbol"><option value="all">全部逻辑</option><option value="pl">PL</option><option value="fol">FOL</option><option value="nm">NM</option></select>
+          <div class="result-count" id="result-count"></div>
+        </div>
+        <div class="sample-list" id="sample-list"></div>
+      </aside>
+      <article class="detail" id="detail"><div class="empty">选择一个样本查看推导链</div></article>
+    </section>
+  </main>
+
+  <script>
+    const esc = value => String(value ?? "").replace(/[&<>'"]/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[ch]));
+    const pct = value => `${Number(value || 0).toFixed(2)}%`;
+    const state = { data: null, filtered: [], selected: null };
+
+    function metric(label, value, note, primary=false) {
+      return `<div class="metric ${primary ? "primary" : ""}"><div class="metric-label">${esc(label)}</div><div class="metric-value">${esc(value)}</div><div class="metric-note">${esc(note)}</div></div>`;
+    }
+
+    function renderSummary() {
+      const {summary:s, meta:m} = state.data;
+      document.querySelector('#metrics').innerHTML = [
+        metric('严格 E2E', pct(s.strict_accuracy), `${s.correct} / ${s.total}`, true),
+        metric('有效输出准确率', pct(s.valid_accuracy), `${s.correct} / ${s.completed}`),
+        metric('JSON 解析率', pct(s.structured_rate), `${s.completed} parsed · ${s.warning_count} warnings`),
+        metric('数据集进度', pct(s.dataset_progress), `${s.total} / ${m.dataset_total}`),
+        metric('平均输出', `${Math.round(s.mean_completion_tokens || 0)}`, `max ${s.max_completion_tokens ?? '-'} tokens`),
+        metric('平均延迟', `${Number(s.mean_latency_seconds || 0).toFixed(2)}s`, `${m.model} · 单样本`),
+      ].join('');
+      document.querySelector('#updated').textContent = `${m.predictions_name} · ${m.updated_at.replace('T',' ')}`;
+      document.querySelector('#token-note').textContent = `均值 ${Math.round(s.mean_completion_tokens || 0)} · 最大 ${s.max_completion_tokens ?? '-'}`;
+    }
+
+    function renderBars(selector, rows) {
+      document.querySelector(selector).innerHTML = rows.map(row => `<div class="bar-row" title="${row.correct}/${row.total}"><span class="bar-label">${esc(row.label)}</span><span class="bar-track"><i class="bar-fill" style="width:${row.accuracy}%"></i></span><span class="bar-value">${pct(row.accuracy)}</span></div>`).join('');
+    }
+
+    function renderTokenChart() {
+      const rows = state.data.token_histogram;
+      const max = Math.max(...rows.map(row => row.count), 1);
+      document.querySelector('#token-chart').innerHTML = rows.map(row => `<div class="token-bar"><span class="token-count">${row.count}</span><i class="token-column" style="height:${Math.max(2, 100*row.count/max)}%"></i><span class="token-label">${esc(row.label)}</span></div>`).join('');
+    }
+
+    function statusBadge(record) {
+      if (record.status === 'invalid_json') return '<span class="badge bad">JSON失败</span>';
+      if (record.consistency_warnings?.length) return '<span class="badge warn">有诊断</span>';
+      return record.correct ? '<span class="badge ok">正确</span>' : '<span class="badge bad">错误</span>';
+    }
+
+    function applyFilters(preferDiagnostic=false) {
+      const q = document.querySelector('#search').value.trim().toLowerCase();
+      const status = document.querySelector('#status').value;
+      const correct = document.querySelector('#correct').value;
+      const symbol = document.querySelector('#symbol').value;
+      state.filtered = state.data.records.filter(record => {
+        const sample = record.sample || {};
+        const haystack = [record.id, record.domain, sample.question, sample.context].join(' ').toLowerCase();
+        if (q && !haystack.includes(q)) return false;
+        if (status === 'diagnostic' && record.status === 'completed' && record.correct && !record.consistency_warnings?.length) return false;
+        if (status === 'warnings' && !record.consistency_warnings?.length) return false;
+        if (!['all','diagnostic','warnings'].includes(status) && record.status !== status) return false;
+        if (correct === 'correct' && record.correct !== true) return false;
+        if (correct === 'wrong' && record.correct === true) return false;
+        if (symbol !== 'all' && String(record.symbol).toLowerCase() !== symbol) return false;
+        return true;
+      }).sort((a,b) => {
+        const rank = r => r.status !== 'completed' ? 0 : (r.correct ? 2 : 1);
+        return rank(a) - rank(b) || Number(b.usage?.completion_tokens || 0) - Number(a.usage?.completion_tokens || 0);
+      });
+      if (preferDiagnostic) document.querySelector('#status').value = 'diagnostic';
+      if (!state.filtered.some(record => record.id === state.selected)) state.selected = state.filtered[0]?.id || null;
+      renderList();
+      renderDetail();
+    }
+
+    function renderList() {
+      document.querySelector('#result-count').textContent = `${state.filtered.length} / ${state.data.records.length} 个样本`;
+      document.querySelector('#sample-list').innerHTML = state.filtered.map(record => {
+        const sample = record.sample || {};
+        return `<button class="sample-item ${record.id === state.selected ? 'active' : ''}" data-id="${esc(record.id)}"><div class="sample-top"><span class="sample-id">${esc(record.id)}</span>${statusBadge(record)}</div><div class="sample-meta"><span>${esc(String(record.symbol || '').toUpperCase())}</span><span>·</span><span>${esc(record.domain)}</span><span>·</span><span>${record.usage?.completion_tokens ?? '-'} tok</span></div></button>`;
+      }).join('') || '<div class="empty">没有匹配结果</div>';
+      document.querySelectorAll('.sample-item').forEach(button => button.addEventListener('click', () => { state.selected = button.dataset.id; renderList(); renderDetail(); }));
+    }
+
+    function choiceRows(sample, record) {
+      if (!sample.choices?.length) return '';
+      return `<div class="choices">${sample.choices.map((choice,index) => {
+        const letter = String.fromCharCode(65+index);
+        const classes = ['choice', letter.toUpperCase() === String(sample.answer).toUpperCase() ? 'gold' : '', letter.toUpperCase() === String(record.prediction).toUpperCase() ? 'pred' : ''].join(' ');
+        return `<div class="${classes}"><strong>${letter}.</strong> ${esc(choice)}</div>`;
+      }).join('')}</div>`;
+    }
+
+    function logicCards(items, type) {
+      if (!items?.length) return '<div class="logic-card"><p class="logic-text">无可用结构化内容</p></div>';
+      return items.map(item => `<div class="logic-card"><div class="logic-top"><span class="logic-id">${esc(item.id)}</span>${item.polarity ? `<span class="badge neutral">${esc(item.polarity)}</span>` : ''}</div><p class="logic-text">${esc(type === 'fact' ? item.description : item.natural_language)}</p><code class="formula">${esc(type === 'fact' ? item.atom : item.formula)}</code></div>`).join('');
+    }
+
+    function derivation(items) {
+      if (!items?.length) return '<div class="logic-card"><p class="logic-text">无法解析推导步骤；请查看上方错误。</p></div>';
+      return `<div class="timeline">${items.map(item => `<div class="step"><div class="step-top"><span class="logic-id">${esc(item.id)}</span><span class="rule">${esc(item.rule)}</span><span class="premises">← ${esc((item.premises || []).join(', ') || '∅')}</span></div><div class="conclusion">${esc(item.conclusion)}</div><p class="justification">${esc(item.justification)}</p></div>`).join('')}</div>`;
+    }
+
+    function candidates(items) {
+      if (!items?.length) return '<div class="logic-card"><p class="logic-text">无候选判定</p></div>';
+      return `<div class="candidate-grid">${items.map(item => `<div class="candidate ${esc(item.verdict)}"><div class="candidate-label"><strong>${esc(item.candidate)}</strong><span class="badge ${['entailed','true'].includes(item.verdict) ? 'ok' : ['contradicted','false'].includes(item.verdict) ? 'bad' : 'warn'}">${esc(item.verdict)}</span></div><div class="candidate-statement">${esc(item.formal_statement)}</div><div class="evidence">证据：${esc((item.evidence || []).join(', ') || '—')}</div></div>`).join('')}</div>`;
+    }
+
+    function originalReasoning(items) {
+      return `<div class="timeline">${items.map((item,index) => `<div class="step"><div class="step-top"><span class="logic-id">ITEM ${index + 1}</span></div><pre class="original-step">${esc(item)}</pre></div>`).join('')}</div>`;
+    }
+
+    function renderDetail() {
+      const record = state.data.records.find(row => row.id === state.selected);
+      if (!record) { document.querySelector('#detail').innerHTML = '<div class="empty">选择一个样本查看推导链</div>'; return; }
+      const sample = record.sample || {};
+      const result = record.structured_output || {};
+      const tokens = record.usage?.completion_tokens ?? '-';
+      const diagnostics = record.consistency_warnings?.length ? `<div class="error-box" style="border-left-color:var(--amber);color:#725017;background:var(--amber-soft)"><strong>仅诊断，不影响 final_answer 判分</strong><br>${record.consistency_warnings.map(esc).join('<br>')}</div>` : '';
+      const err = record.error ? `<div class="error-box"><strong>${esc(record.status)}</strong><br>${esc(record.error)}</div>` : '';
+      const reasoningBody = result.reasoning_steps?.length
+        ? `<div class="reasoning-head"><h3>LogiCAM 原版推理</h3><span class="card-caption">${result.reasoning_steps.length} JSON items · ${esc(record.prompt_template?.split('/').pop() || '')}</span></div>${originalReasoning(result.reasoning_steps)}`
+        : `<div class="reasoning-head"><h3>01 · 视觉事实</h3><span class="card-caption">Visual grounding</span></div><div class="reasoning-grid">${logicCards(result.visual_facts, 'fact')}</div><div class="reasoning-head"><h3>02 · 上下文形式化</h3><span class="card-caption">${esc(result.logic_family || record.symbol || '')}</span></div><div class="reasoning-grid">${logicCards(result.context_formalization, 'context')}</div><div class="reasoning-head"><h3>03 · 推导链</h3><span class="card-caption">${result.derivation_steps?.length || 0} steps</span></div>${derivation(result.derivation_steps)}<div class="reasoning-head"><h3>04 · 候选判定</h3><span class="card-caption">Evidence-linked verdicts</span></div>${candidates(result.candidate_evaluations)}`;
+      document.querySelector('#detail').innerHTML = `
+        <div class="detail-head"><div><div class="detail-tags">${statusBadge(record)}<span class="badge neutral">${esc(String(record.symbol || '').toUpperCase())}</span><span class="badge neutral">depth ${esc(record.depth ?? '-')}</span></div><h2>${esc(record.id)}</h2></div><div class="usage">${esc(record.domain)}<br>${tokens} completion tokens · ${Number(record.latency_seconds || 0).toFixed(2)}s</div></div>
+        ${err}${diagnostics}
+        <div class="problem"><div class="image-wrap"><img src="${esc(sample.image_url)}" alt="${esc(record.id)}"></div><div class="prompt"><h3>Context</h3><p class="context">${esc(sample.context)}</p><h3>Question</h3><p>${esc(sample.question)}</p>${choiceRows(sample, record)}<div class="answer-strip"><div class="answer-cell"><span>Gold</span><strong>${esc(sample.answer)}</strong></div><div class="answer-cell"><span>Prediction</span><strong>${esc(record.prediction ?? '—')}</strong></div><div class="answer-cell"><span>Status</span><strong>${record.correct ? '✓' : '×'}</strong></div></div></div></div>
+        ${reasoningBody}
+        <div class="final-box"><strong>Final · ${esc(result.final_answer ?? record.prediction ?? '—')}</strong><p>${esc(result.concise_reason || (result.reasoning_steps ? '按 final_answer 直接评分；JSON 结构只约束输出边界。' : '结构化结果未通过一致性检查。'))}</p></div>`;
+    }
+
+    async function loadData() {
+      try {
+        const response = await fetch('/api/data', {cache:'no-store'});
+        if (!response.ok) throw new Error(await response.text());
+        state.data = await response.json();
+        renderSummary(); renderBars('#symbols', state.data.by_symbol); renderBars('#domains', state.data.by_domain); renderTokenChart();
+        applyFilters(true);
+      } catch (error) {
+        document.querySelector('#detail').innerHTML = `<div class="error-box">${esc(error.message)}</div>`;
+      } finally { document.querySelector('#loader').classList.add('hidden'); }
+    }
+
+    ['search','status','correct','symbol'].forEach(id => document.querySelector(`#${id}`).addEventListener(id === 'search' ? 'input' : 'change', () => applyFilters()));
+    loadData();
+  </script>
+</body>
+</html>

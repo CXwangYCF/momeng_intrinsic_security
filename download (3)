@@ -1,0 +1,10 @@
+__pycache__/
+outputs/
+.env
+.venv/
+.ruff_cache/
+.pytest_cache/
+*.py[cod]
+data/
+prompts/
+*.tar.gz
